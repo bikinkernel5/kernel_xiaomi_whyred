@@ -1,0 +1,55 @@
+name: Build Whyred Kernel DRM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile Kernel
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Kernel Source
+      uses: actions/checkout@v3
+
+    - name: Install Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          bc bison flex libssl-dev make libc6-dev \
+          libncurses5-dev git clang ccache libelf-dev \
+          libxml2-utils python3 python3-pip zip curl
+
+    - name: Clone Toolchain
+      run: |
+        mkdir -p toolchain
+        cd toolchain
+        git clone --depth=1 https://github.com/ClangBuiltLinux/clang-r450784 clang
+        git clone --depth=1 https://github.com/TogoFire/arm64-gcc gcc64
+        git clone --depth=1 https://github.com/TogoFire/arm32-gcc gcc32
+
+    - name: Build Kernel with DRM/KMS
+      run: |
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export CLANG_TRIPLE=aarch64-linux-gnu-
+        export CROSS_COMPILE=aarch64-linux-android-
+        export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+        export PATH=$GITHUB_WORKSPACE/toolchain/clang/bin:$PATH
+        export PATH=$GITHUB_WORKSPACE/toolchain/gcc64/bin:$PATH
+        export PATH=$GITHUB_WORKSPACE/toolchain/gcc32/bin:$PATH
+
+        make O=out ARCH=arm64 whyred_defconfig
+
+        make -j$(nproc) O=out \
+          ARCH=arm64 \
+          CC=clang \
+          CROSS_COMPILE=aarch64-linux-android- \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          LLVM=1
+
+    - name: Upload Kernel Image
+      uses: actions/upload-artifact@v3
+      with:
+        name: Image.gz-dtb
+        path: out/arch/arm64/boot/Image.gz-dtb
