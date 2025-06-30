@@ -18,33 +18,44 @@ jobs:
         sudo apt install -y \
           bc bison flex libssl-dev make libc6-dev \
           libncurses5-dev git clang ccache libelf-dev \
-          libxml2-utils python3 python3-pip zip curl
+          libxml2-utils python3 python3-pip zip curl unzip
 
-    - name: Clone Proton-Clang Toolchain
+    - name: Download Android NDK r25b
       run: |
         mkdir -p toolchain
-        git clone --depth=1 https://github.com/kdrag0n/proton-clang toolchain/clang
+        cd toolchain
+        curl -LO https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+        unzip android-ndk-r25b-linux.zip
+        mv android-ndk-r25b ndk
 
     - name: Set Environment Variables
       run: |
-        echo "PATH=$GITHUB_WORKSPACE/toolchain/clang/bin:$PATH" >> $GITHUB_ENV
+        echo "PATH=$GITHUB_WORKSPACE/toolchain/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH" >> $GITHUB_ENV
         echo "ARCH=arm64" >> $GITHUB_ENV
         echo "SUBARCH=arm64" >> $GITHUB_ENV
-        echo "CLANG_TRIPLE=aarch64-linux-gnu-" >> $GITHUB_ENV
-        echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
+        echo "CROSS_COMPILE=aarch64-linux-android-" >> $GITHUB_ENV
+        echo "CLANG_TRIPLE=aarch64-linux-android-" >> $GITHUB_ENV
+        echo "LLVM=1" >> $GITHUB_ENV
 
     - name: Build Kernel
       run: |
         mkdir -p out
+
+        export KERNEL_CC=clang
+        export KERNEL_CLANG_TRIPLE=$CLANG_TRIPLE
+        export CROSS_COMPILE=$CROSS_COMPILE
+        export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+
         make O=out whyred_defconfig
 
         make -j$(nproc) \
           O=out \
-          ARCH=arm64 \
-          CC=clang \
+          ARCH=$ARCH \
+          CC=$KERNEL_CC \
+          CLANG_TRIPLE=$KERNEL_CLANG_TRIPLE \
           CROSS_COMPILE=$CROSS_COMPILE \
-          CLANG_TRIPLE=$CLANG_TRIPLE \
-          LLVM=1
+          CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
+          LLVM=$LLVM
 
     - name: Upload Kernel Image
       uses: actions/upload-artifact@v4
