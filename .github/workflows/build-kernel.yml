@@ -28,12 +28,12 @@ jobs:
         unzip android-ndk-r25b-linux.zip
         mv android-ndk-r25b ndk
 
-    - name: Clone GCC Toolchains
+    - name: Clone GCC Toolchains (Public ZyCromerZ)
       run: |
         mkdir -p toolchain/gcc
         cd toolchain/gcc
-        git clone --depth=1 https://github.com/TogoFire/arm64-gcc gcc64
-        git clone --depth=1 https://github.com/TogoFire/arm32-gcc gcc32
+        git clone --depth=1 https://github.com/ZyCromerZ/aarch64-zyc-linux-gnu gcc64
+        git clone --depth=1 https://github.com/ZyCromerZ/arm-zyc-linux-gnueabi gcc32
 
     - name: Build Kernel
       run: |
@@ -46,14 +46,14 @@ jobs:
         export ARCH=arm64
         export SUBARCH=arm64
 
+        # Gunakan prefix dari ZyCromerZ toolchain
         export CLANG_TRIPLE=aarch64-linux-gnu-
-        export CROSS_COMPILE=aarch64-linux-android-
-        export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+        export CROSS_COMPILE=aarch64-zyc-linux-gnu-
+        export CROSS_COMPILE_ARM32=arm-zyc-linux-gnueabi-
         export LLVM=1
 
         mkdir -p out
 
-        # Apply defconfig
         make \
           O=out \
           ARCH=$ARCH \
@@ -64,7 +64,6 @@ jobs:
           LLVM=$LLVM \
           whyred_defconfig
 
-        # Compile kernel
         make -j$(nproc) \
           O=out \
           ARCH=$ARCH \
