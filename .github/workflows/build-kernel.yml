@@ -8,7 +8,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout kernel source
+      uses: actions/checkout@v4
 
     - name: Install Dependencies
       run: |
@@ -24,21 +25,21 @@ jobs:
         curl -LO https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
         unzip android-ndk-r25b-linux.zip -d toolchain/ndk
 
-    - name: Download Arm GNU Toolchain (official)
+    - name: Download Arm GNU Toolchain
       run: |
         mkdir -p toolchain/gcc
         cd toolchain/gcc
-        # AArch64
+        # AArch64 (64-bit)
         curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
-        # ARM32
+        # ARM32 (32-bit)
         curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
 
-    - name: Patch sde_kms to fix DRM build
+    - name: Patch sde_kms.c for DRM compatibility
       run: |
         sed -i 's/_sde_debugfs_destroy(sde_kms);/sde_dbg_destroy();/' drivers/gpu/drm/msm/sde/sde_kms.c
-        sed -i 's/rc = _sde_debugfs_init(sde_kms);/rc = sde_dbg_init(NULL, sde_kms->dev);/' drivers/gpu/drm/msm/sde/sde_kms.c
+        sed -i 's/rc = _sde_debugfs_init(sde_kms);/rc = sde_dbg_init(NULL, sde_kms->dev->dev, sde_kms->dev);/' drivers/gpu/drm/msm/sde/sde_kms.c
 
     - name: Build Kernel
       run: |
@@ -47,7 +48,6 @@ jobs:
 
         export ARCH=arm64
         export SUBARCH=arm64
-
         export CLANG_TRIPLE=aarch64-linux-gnu-
         export CROSS_COMPILE=aarch64-none-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-none-linux-gnueabihf-
