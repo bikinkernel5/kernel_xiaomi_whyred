@@ -267,33 +267,24 @@ void sde_dbg_reg_register_dump_range(const char *base_name,
  */
 void sde_dbg_set_sde_top_offset(u32 blk_off);
 #else
-static inline struct sde_dbg_evtlog *sde_evtlog_init(void)
-{
-	return NULL;
-}
+#ifdef CONFIG_DEBUG_FS
 
-static inline void sde_evtlog_destroy(struct sde_dbg_evtlog *evtlog)
-{
-}
+int sde_dbg_init(struct dentry *debugfs_root, struct device *dev,
+                 struct sde_dbg_power_ctrl *power_ctrl);
+void sde_dbg_destroy(void);
+void sde_dbg_dump(bool queue_work, const char *name, ...);
+void sde_dbg_ctrl(const char *name, ...);
+void sde_dbg_init_dbg_buses(u32 hwversion);
+int sde_dbg_reg_register_base(const char *name,
+        void __iomem *base, size_t size);
+void sde_dbg_reg_register_dump_range(const char *base_name,
+        const char *range_name, u32 offset, u32 length, uint32_t blk_mask);
+void sde_dbg_set_sde_top_offset(u32 blk_off);
 
-static inline void sde_evtlog_log(struct sde_dbg_evtlog *evtlog,
-		const char *name, int line, int flag, ...)
-{
-}
+#else
 
-static inline void sde_evtlog_dump_all(struct sde_dbg_evtlog *evtlog)
-{
-}
-
-static inline bool sde_evtlog_is_enabled(struct sde_dbg_evtlog *evtlog,
-		u32 flag)
-{
-	return false;
-}
-
-static inline ssize_t sde_evtlog_dump_to_buffer(struct sde_dbg_evtlog *evtlog,
-		char *evtlog_buf, ssize_t evtlog_buf_size,
-		bool update_last_entry)
+static inline int sde_dbg_init(struct dentry *debugfs_root, struct device *dev,
+                               struct sde_dbg_power_ctrl *power_ctrl)
 {
 	return 0;
 }
@@ -307,34 +298,15 @@ static inline int sde_dbg_init(struct dentry *debugfs_root, struct device *dev,
 {
 	return 0;
 }
-
-static inline void sde_dbg_destroy(void)
-{
-}
-
-static inline void sde_dbg_dump(bool queue_work, const char *name, ...)
-{
-}
-
-static inline void sde_dbg_ctrl(const char *name, ...)
-{
-}
-
+static inline void sde_dbg_destroy(void) {}
+static inline void sde_dbg_dump(bool queue_work, const char *name, ...) {}
+static inline void sde_dbg_ctrl(const char *name, ...) {}
+static inline void sde_dbg_init_dbg_buses(u32 hwversion) {}
 static inline int sde_dbg_reg_register_base(const char *name,
-		void __iomem *base, size_t max_offset)
-{
-	return 0;
-}
-
+        void __iomem *base, size_t size) { return 0; }
 static inline void sde_dbg_reg_register_dump_range(const char *base_name,
-		const char *range_name, u32 offset_start, u32 offset_end,
-		uint32_t xin_id)
-{
-}
-
-void sde_dbg_set_sde_top_offset(u32 blk_off)
-{
-}
+        const char *range_name, u32 offset, u32 length, uint32_t blk_mask) {}
+static inline void sde_dbg_set_sde_top_offset(u32 blk_off) {}
 #endif /* defined(CONFIG_DEBUG_FS) */
 
 
