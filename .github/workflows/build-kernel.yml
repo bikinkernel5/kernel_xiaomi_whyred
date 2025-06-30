@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v4
 
@@ -23,26 +24,25 @@ jobs:
         curl -LO https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
         unzip android-ndk-r25b-linux.zip -d toolchain/ndk
 
-    - name: Download Arm GNU Toolchain (AArch64 & ARM32)
+    - name: Download Arm GNU Toolchain (official)
       run: |
         mkdir -p toolchain/gcc
         cd toolchain/gcc
-
-        # AArch64 Linux GNU (64-bit)
-        curl -LO https://developer.arm.com/-/media/Files/downloads/gnu-a/14.2.rel1/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+        # AArch64 GNU/Linux
+        curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
-
-        # ARM32 hard-float (32-bit)
-        curl -LO https://developer.arm.com/-/media/Files/downloads/gnu-a/14.2.rel1/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
+        # ARM32 GNU/Linux HF
+        curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
 
     - name: Build Kernel
       run: |
-        export NDK_PATH=$GITHUB_WORKSPACE/toolchain/ndk/android-ndk-r25b
-        export PATH="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin:$PWD/toolchain/gcc/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu/bin:$PWD/toolchain/gcc/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf/bin:$PATH"
+        export NDK=$GITHUB_WORKSPACE/toolchain/ndk/android-ndk-r25b
+        export PATH="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PWD/toolchain/gcc/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu/bin:$PWD/toolchain/gcc/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf/bin:$PATH"
 
         export ARCH=arm64
         export SUBARCH=arm64
+
         export CLANG_TRIPLE=aarch64-linux-gnu-
         export CROSS_COMPILE=aarch64-none-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-none-linux-gnueabihf-
