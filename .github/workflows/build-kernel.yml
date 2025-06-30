@@ -11,7 +11,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v4
 
-    - name: Install Dependencies
+    - name: Install dependencies
       run: |
         sudo apt update
         sudo apt install -y bc bison flex libssl-dev make \
@@ -25,63 +25,83 @@ jobs:
         curl -LO https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
         unzip -q android-ndk-r25b-linux.zip -d toolchain/ndk
 
-    - name: Download GNU Toolchains
+    - name: Download ARM GNU toolchains
       run: |
         mkdir -p toolchain/gcc
         cd toolchain/gcc
+        # AArch64
         curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+        # ARM32
         curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
 
-    - name: Patch sde_dbg.h
+    - name: Apply patched sde_dbg.h
       run: |
+        mkdir -p drivers/gpu/drm/msm/
         cat << 'EOF' > drivers/gpu/drm/msm/sde_dbg.h
 #ifndef SDE_DBG_H_
 #define SDE_DBG_H_
 
 #include <linux/types.h>
 #include <linux/printk.h>
+#include <linux/io.h>
 #include <linux/device.h>
+#include <linux/dcache.h>
 #include <linux/debugfs.h>
-#include <linux/seq_file.h>
-#include <linux/uaccess.h>
-#include <linux/list.h>
-#include <linux/mutex.h>
-#include <linux/kthread.h>
-#include <linux/kfifo.h>
-#include <linux/ktime.h>
 
-struct sde_dbg_power_ctrl {
-	int dummy;
-};
+struct sde_dbg_power_ctrl;
+struct drm_device;
+struct sde_kms;
 
 static inline int sde_dbg_init(struct dentry *debugfs_root, struct device *dev,
-			       struct sde_dbg_power_ctrl *power_ctrl)
+                               struct sde_dbg_power_ctrl *power_ctrl)
 {
 	return 0;
 }
 
-static inline void sde_dbg_destroy(void) {}
+static inline void sde_dbg_destroy(void)
+{
+}
 
-static inline void sde_dbg_dump(bool queue_work, const char *name, ...) {}
+static inline void sde_dbg_dump(bool queue_work, const char *name, ...)
+{
+}
 
-static inline void sde_dbg_ctrl(const char *name, ...) {}
+static inline void sde_dbg_ctrl(const char *name, ...)
+{
+}
 
-static inline void sde_dbg_init_dbg_buses(u32 hwversion) {}
+static inline void sde_dbg_init_dbg_buses(u32 hwversion)
+{
+}
 
 static inline int sde_dbg_reg_register_base(const char *name,
 					    void __iomem *base,
-					    size_t size)
+					    size_t length)
 {
 	return 0;
 }
 
 static inline void sde_dbg_reg_register_dump_range(const char *base_name,
-	const char *range_name, u32 offset, u32 length, uint32_t blk)
-{}
+						    const char *range_name,
+						    u32 start_offset,
+						    u32 end_offset,
+						    uint32_t blk)
+{
+}
 
-static inline void sde_dbg_set_sde_top_offset(u32 blk_off) {}
+static inline void sde_dbg_set_sde_top_offset(u32 blk_off)
+{
+}
+
+static inline void sde_evtlog_log(void *evtlog, const char *func, const char *fmt, ...)
+{
+}
+
+#define SDE_EVT32(args...)        sde_evtlog_log(NULL, __func__, ##args)
+#define SDE_EVT32_VERBOSE(args...) SDE_EVT32(args)
+#define SDE_DBG_EVTLOG(args...)   SDE_EVT32(args)
 
 #endif /* SDE_DBG_H_ */
 EOF
@@ -107,7 +127,7 @@ EOF
           CLANG_TRIPLE=$CLANG_TRIPLE \
           LLVM=$LLVM
 
-    - name: Upload Kernel Image
+    - name: Upload Image.gz-dtb
       uses: actions/upload-artifact@v4
       with:
         name: Image.gz-dtb
