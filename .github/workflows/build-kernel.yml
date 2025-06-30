@@ -29,16 +29,13 @@ jobs:
       run: |
         mkdir -p toolchain/gcc
         cd toolchain/gcc
-        # AArch64
         curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
-        # ARM32
         curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
 
-    - name: Apply patched sde_dbg.h
+    - name: Patch sde_dbg.h
       run: |
-        mkdir -p drivers/gpu/drm/msm/
         cat << 'EOF' > drivers/gpu/drm/msm/sde_dbg.h
 #ifndef SDE_DBG_H_
 #define SDE_DBG_H_
