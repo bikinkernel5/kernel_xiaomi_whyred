@@ -28,22 +28,32 @@ jobs:
         unzip android-ndk-r25b-linux.zip
         mv android-ndk-r25b ndk
 
+    - name: Clone GCC Toolchains
+      run: |
+        mkdir -p toolchain/gcc
+        cd toolchain/gcc
+        git clone --depth=1 https://github.com/TogoFire/arm64-gcc gcc64
+        git clone --depth=1 https://github.com/TogoFire/arm32-gcc gcc32
+
     - name: Build Kernel
       run: |
+        # Setup PATH
         export NDK_PATH=$GITHUB_WORKSPACE/toolchain/ndk
         export PATH=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+        export PATH=$GITHUB_WORKSPACE/toolchain/gcc/gcc64/bin:$PATH
+        export PATH=$GITHUB_WORKSPACE/toolchain/gcc/gcc32/bin:$PATH
 
         export ARCH=arm64
         export SUBARCH=arm64
 
-        # Hardcoded triple sesuai dengan format yang diharuskan kernel Makefile
         export CLANG_TRIPLE=aarch64-linux-gnu-
         export CROSS_COMPILE=aarch64-linux-android-
         export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+        export LLVM=1
 
         mkdir -p out
 
-        # Jalankan defconfig
+        # Apply defconfig
         make \
           O=out \
           ARCH=$ARCH \
@@ -51,10 +61,10 @@ jobs:
           CROSS_COMPILE=$CROSS_COMPILE \
           CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
           CLANG_TRIPLE=$CLANG_TRIPLE \
-          LLVM=1 \
+          LLVM=$LLVM \
           whyred_defconfig
 
-        # Kompilasi kernel
+        # Compile kernel
         make -j$(nproc) \
           O=out \
           ARCH=$ARCH \
@@ -62,7 +72,7 @@ jobs:
           CROSS_COMPILE=$CROSS_COMPILE \
           CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
           CLANG_TRIPLE=$CLANG_TRIPLE \
-          LLVM=1
+          LLVM=$LLVM
 
     - name: Upload Kernel Image
       uses: actions/upload-artifact@v4
