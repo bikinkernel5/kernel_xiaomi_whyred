@@ -30,34 +30,33 @@ jobs:
 
     - name: Build Kernel
       run: |
-        # Setup environment
+        # Set environment paths
+        export NDK_PATH=$GITHUB_WORKSPACE/toolchain/ndk
+        export PATH=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+
         export ARCH=arm64
         export SUBARCH=arm64
-        export PATH=$GITHUB_WORKSPACE/toolchain/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
 
+        # Android NDK compiler (API 33)
+        export CLANG_TRIPLE=aarch64-linux-android-
         export CROSS_COMPILE=aarch64-linux-android-
         export CROSS_COMPILE_ARM32=arm-linux-androideabi-
-        export CC=clang
+
+        export CC=aarch64-linux-android33-clang
         export LLVM=1
 
-        # Target Android API 33 explicitly for Clang
-        export KERNEL_TARGET=aarch64-linux-android33
-        export KERNEL_TRIPLE=--target=$KERNEL_TARGET
-
-        # Prepare output dir
         mkdir -p out
 
-        # Load defconfig
         make O=out whyred_defconfig
 
-        # Build with --target passed directly to clang
         make -j$(nproc) \
           O=out \
           ARCH=$ARCH \
           SUBARCH=$SUBARCH \
-          CC="clang $KERNEL_TRIPLE" \
+          CC=$CC \
           CROSS_COMPILE=$CROSS_COMPILE \
           CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
+          CLANG_TRIPLE=$CLANG_TRIPLE \
           LLVM=$LLVM
 
     - name: Upload Kernel Image
