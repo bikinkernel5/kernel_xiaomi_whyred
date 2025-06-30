@@ -1,35 +1,65 @@
-Run mkdir -p out
-make[1]: Entering directory '/home/runner/work/kernel_xiaomi_whyred/kernel_xiaomi_whyred/out'
-  HOSTCC  scripts/basic/fixdep
-  GEN     ./Makefile
-  HOSTCC  scripts/kconfig/conf.o
-  SHIPPED scripts/kconfig/zconf.tab.c
-  SHIPPED scripts/kconfig/zconf.lex.c
-  SHIPPED scripts/kconfig/zconf.hash.c
-  HOSTCC  scripts/kconfig/zconf.tab.o
-In file included from scripts/kconfig/zconf.tab.c:2578:
-In function ‘dep_stack_insert’,
-    inlined from ‘sym_check_print_recursive’ at ../scripts/kconfig/symbol.c:1089:3,
-    inlined from ‘sym_check_deps’ at ../scripts/kconfig/symbol.c:1266:3:
-../scripts/kconfig/symbol.c:1065:19: warning: storing the address of local variable ‘cv_stack’ in ‘check_top’ [-Wdangling-pointer=]
- 1065 |         check_top = stack;
-      |         ~~~~~~~~~~^~~~~~~
-../scripts/kconfig/symbol.c: In function ‘sym_check_deps’:
-../scripts/kconfig/symbol.c:1086:26: note: ‘cv_stack’ declared here
- 1086 |         struct dep_stack cv_stack;
-      |                          ^~~~~~~~
-../scripts/kconfig/symbol.c:1056:4: note: ‘check_top’ declared here
- 1056 | } *check_top;
-      |    ^~~~~~~~~
-  HOSTLD  scripts/kconfig/conf
-warning: (DRM_RADEON && DRM_AMDGPU && DRM_NOUVEAU && DRM_I915 && DRM_GMA500 && DRM_SHMOBILE && DRM_TILCDC && DRM_MSM && DRM_FSL_DCU && DRM_PARADE_PS8622 && FB_BACKLIGHT && FB_MX3 && USB_APPLEDISPLAY && FB_OLPC_DCON && ACPI_CMPC && SAMSUNG_Q10) selects BACKLIGHT_CLASS_DEVICE which has unmet direct dependencies (HAS_IOMEM && BACKLIGHT_LCD_SUPPORT)
-warning: (DRM_RADEON && DRM_AMDGPU && DRM_NOUVEAU && DRM_I915 && DRM_GMA500 && DRM_SHMOBILE && DRM_TILCDC && DRM_MSM && DRM_FSL_DCU && DRM_PARADE_PS8622 && FB_BACKLIGHT && FB_MX3 && USB_APPLEDISPLAY && FB_OLPC_DCON && ACPI_CMPC && SAMSUNG_Q10) selects BACKLIGHT_CLASS_DEVICE which has unmet direct dependencies (HAS_IOMEM && BACKLIGHT_LCD_SUPPORT)
-#
-# configuration written to .config
-#
-make[1]: Leaving directory '/home/runner/work/kernel_xiaomi_whyred/kernel_xiaomi_whyred/out'
-make[1]: Entering directory '/home/runner/work/kernel_xiaomi_whyred/kernel_xiaomi_whyred/out'
-/home/runner/work/kernel_xiaomi_whyred/kernel_xiaomi_whyred/Makefile:616: *** "Clang with Android --target detected. Did you specify CLANG_TRIPLE?".  Stop.
-make[1]: Leaving directory '/home/runner/work/kernel_xiaomi_whyred/kernel_xiaomi_whyred/out'
-make: *** [Makefile:152: sub-make] Error 2
-Error: Process completed with exit code 2.
+name: Build Whyred Kernel DRM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile Kernel
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Kernel Source
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          bc bison flex libssl-dev make libc6-dev \
+          libncurses5-dev git clang ccache libelf-dev \
+          libxml2-utils python3 python3-pip zip curl unzip
+
+    - name: Download Android NDK r25b
+      run: |
+        mkdir -p toolchain
+        cd toolchain
+        curl -LO https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+        unzip android-ndk-r25b-linux.zip
+        mv android-ndk-r25b ndk
+
+    - name: Build Kernel
+      run: |
+        # Set environment
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export PATH=$GITHUB_WORKSPACE/toolchain/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+
+        export CROSS_COMPILE=aarch64-linux-android-
+        export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+        export CLANG_TRIPLE=aarch64-linux-android-
+        export CC=clang
+        export LLVM=1
+
+        # Prepare build directory
+        mkdir -p out
+
+        # Defconfig
+        make O=out whyred_defconfig
+
+        # Build
+        make -j$(nproc) \
+          O=out \
+          ARCH=$ARCH \
+          SUBARCH=$SUBARCH \
+          CROSS_COMPILE=$CROSS_COMPILE \
+          CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
+          CLANG_TRIPLE=$CLANG_TRIPLE \
+          CC=$CC \
+          LLVM=$LLVM
+
+    - name: Upload Kernel Image
+      uses: actions/upload-artifact@v4
+      with:
+        name: Image.gz-dtb
+        path: out/arch/arm64/boot/Image.gz-dtb
