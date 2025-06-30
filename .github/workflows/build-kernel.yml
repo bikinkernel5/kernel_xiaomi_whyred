@@ -20,32 +20,29 @@ jobs:
           libncurses5-dev git clang ccache libelf-dev \
           libxml2-utils python3 python3-pip zip curl
 
-    - name: Clone Toolchain
+    - name: Clone Proton-Clang Toolchain
       run: |
         mkdir -p toolchain
-        cd toolchain
-        git clone --depth=1 https://github.com/ClangBuiltLinux/clang-r450784 clang
-        git clone --depth=1 https://github.com/TogoFire/arm64-gcc gcc64
-        git clone --depth=1 https://github.com/TogoFire/arm32-gcc gcc32
+        git clone --depth=1 https://github.com/kdrag0n/proton-clang toolchain/clang
 
     - name: Set Environment Variables
       run: |
-        echo "PATH=$GITHUB_WORKSPACE/toolchain/clang/bin:$GITHUB_WORKSPACE/toolchain/gcc64/bin:$GITHUB_WORKSPACE/toolchain/gcc32/bin:$PATH" >> $GITHUB_ENV
+        echo "PATH=$GITHUB_WORKSPACE/toolchain/clang/bin:$PATH" >> $GITHUB_ENV
         echo "ARCH=arm64" >> $GITHUB_ENV
         echo "SUBARCH=arm64" >> $GITHUB_ENV
         echo "CLANG_TRIPLE=aarch64-linux-gnu-" >> $GITHUB_ENV
-        echo "CROSS_COMPILE=$GITHUB_WORKSPACE/toolchain/gcc64/bin/aarch64-elf-" >> $GITHUB_ENV
-        echo "CROSS_COMPILE_ARM32=$GITHUB_WORKSPACE/toolchain/gcc32/bin/arm-eabi-" >> $GITHUB_ENV
+        echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
 
     - name: Build Kernel
       run: |
         mkdir -p out
         make O=out whyred_defconfig
-        make -j$(nproc) O=out \
+
+        make -j$(nproc) \
+          O=out \
+          ARCH=arm64 \
           CC=clang \
-          HOSTCC=gcc \
           CROSS_COMPILE=$CROSS_COMPILE \
-          CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
           CLANG_TRIPLE=$CLANG_TRIPLE \
           LLVM=1
 
