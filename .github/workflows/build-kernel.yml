@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout kernel source
+    - name: Checkout Source
       uses: actions/checkout@v4
 
     - name: Install Dependencies
@@ -29,17 +29,88 @@ jobs:
       run: |
         mkdir -p toolchain/gcc
         cd toolchain/gcc
-        # AArch64 (64-bit)
         curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
-        # ARM32 (32-bit)
         curl -LO https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
         tar -xf arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
 
-    - name: Patch sde_kms.c for DRM compatibility
+    - name: Apply full sde_dbg.h patch
       run: |
-        sed -i 's/_sde_debugfs_destroy(sde_kms);/sde_dbg_destroy();/' drivers/gpu/drm/msm/sde/sde_kms.c
-        sed -i 's/rc = _sde_debugfs_init(sde_kms);/rc = sde_dbg_init(NULL, sde_kms->dev->dev, sde_kms->dev);/' drivers/gpu/drm/msm/sde/sde_kms.c
+        cat << 'EOF' > drivers/gpu/drm/msm/sde_dbg.h
+#ifndef SDE_DBG_H_
+#define SDE_DBG_H_
+
+#include <linux/types.h>
+#include <linux/printk.h>
+#include <linux/device.h>
+#include <linux/fs.h>
+#include "sde_evtlog.h"
+
+#define SDE_EVTLOG_DATA_LIMITER    (0xC0DEBEEF)
+#define SDE_EVTLOG_FUNC_ENTRY      0x1111
+#define SDE_EVTLOG_FUNC_EXIT       0x2222
+#define SDE_EVTLOG_ERROR           0xebad
+#define SDE_DBG_DUMP_DATA_LIMITER  (NULL)
+
+enum sde_dbg_evtlog_flag {
+    // tambahkan jika perlu
+};
+enum sde_dbg_dump_flag {
+    // tambahkan jika perlu
+};
+
+struct sde_dbg_power_ctrl {
+    // tambahkan jika perlu
+};
+struct sde_dbg_evtlog {
+    // tambahkan jika perlu
+};
+extern struct sde_dbg_evtlog *sde_dbg_base_evtlog;
+
+#define SDE_EVT32(...) do {} while (0)
+#define SDE_DBG_DUMP(...) do {} while (0)
+#define SDE_DBG_DUMP_WQ(...) do {} while (0)
+#define SDE_DBG_CTRL(...) do {} while (0)
+
+#ifdef CONFIG_DEBUG_FS
+int sde_evtlog_init(void);
+void sde_evtlog_destroy(void);
+bool sde_evtlog_is_enabled(void);
+ssize_t sde_evtlog_dump_to_buffer(char *buf, size_t size);
+
+void sde_dbg_init_dbg_buses(u32 hwversion);
+int sde_dbg_init(struct dentry *debugfs_root, struct device *dev,
+                 struct sde_dbg_power_ctrl *power_ctrl);
+void sde_dbg_destroy(void);
+void sde_dbg_dump(bool queue_work, const char *name, ...);
+void sde_dbg_ctrl(const char *name, ...);
+int sde_dbg_reg_register_base(const char *name, void __iomem *base, size_t size);
+void sde_dbg_reg_register_dump_range(const char *base_name,
+                                     const char *range_name,
+                                     u32 offset_start, u32 offset_end,
+                                     uint32_t xin_id);
+void sde_dbg_set_sde_top_offset(u32 blk_off);
+#else
+static inline int sde_dbg_init(struct dentry *debugfs_root,
+                               struct device *dev,
+                               struct sde_dbg_power_ctrl *power_ctrl)
+{ return 0; }
+static inline void sde_dbg_destroy(void) {}
+static inline void sde_dbg_dump(bool queue_work, const char *name, ...) {}
+static inline void sde_dbg_ctrl(const char *name, ...) {}
+static inline void sde_dbg_init_dbg_buses(u32 hwversion) {}
+static inline int sde_dbg_reg_register_base(const char *name,
+                                            void __iomem *base, size_t size)
+{ return 0; }
+static inline void sde_dbg_reg_register_dump_range(const char *base_name,
+                                                   const char *range_name,
+                                                   u32 offset_start, u32 offset_end,
+                                                   uint32_t xin_id) {}
+static inline void sde_dbg_set_sde_top_offset(u32 blk_off) {}
+#endif /* CONFIG_DEBUG_FS */
+
+#endif /* SDE_DBG_H_ */
+EOF
 
     - name: Build Kernel
       run: |
