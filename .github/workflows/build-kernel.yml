@@ -28,16 +28,15 @@ jobs:
         unzip android-ndk-r25b-linux.zip
         mv android-ndk-r25b ndk
 
-    - name: Clone GCC Toolchains (ZyCromerZ)
+    - name: Clone Public GCC Toolchains
       run: |
         mkdir -p toolchain/gcc
         cd toolchain/gcc
-        git clone --depth=1 https://github.com/ZyCromerZ/aarch64-elf-gcc gcc64
-        git clone --depth=1 https://github.com/ZyCromerZ/arm-eabi-gcc gcc32
+        git clone --depth=1 https://github.com/ks312/android-prebuilts-gcc-linux-x86-aarch64 gcc64
+        git clone --depth=1 https://github.com/ks312/android-prebuilts-gcc-linux-x86-arm gcc32
 
     - name: Build Kernel
       run: |
-        # Setup PATH
         export NDK_PATH=$GITHUB_WORKSPACE/toolchain/ndk
         export PATH=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
         export PATH=$GITHUB_WORKSPACE/toolchain/gcc/gcc64/bin:$PATH
@@ -46,9 +45,10 @@ jobs:
         export ARCH=arm64
         export SUBARCH=arm64
 
+        # Prefix default dari AOSP GCC
         export CLANG_TRIPLE=aarch64-linux-gnu-
-        export CROSS_COMPILE=aarch64-elf-
-        export CROSS_COMPILE_ARM32=arm-eabi-
+        export CROSS_COMPILE=aarch64-linux-android-
+        export CROSS_COMPILE_ARM32=arm-linux-androideabi-
         export LLVM=1
 
         mkdir -p out
