@@ -57,7 +57,7 @@ static inline void sde_dbg_set_sde_top_offset(u32 blk_off)
 {
 }
 
-static inline void sde_evtlog_log(void *evtlog, const char *func_name, const char *fmt, ...)
+static inline void sde_evtlog_log(void *evtlog, const char *func_name, ...)
 {
 }
 
