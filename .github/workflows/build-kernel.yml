@@ -30,34 +30,39 @@ jobs:
 
     - name: Build Kernel
       run: |
-        # Set environment paths
         export NDK_PATH=$GITHUB_WORKSPACE/toolchain/ndk
         export PATH=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
 
         export ARCH=arm64
         export SUBARCH=arm64
 
-        # Android NDK compiler (API 33)
-        export CLANG_TRIPLE=aarch64-linux-android-
+        # Hardcoded triple sesuai dengan format yang diharuskan kernel Makefile
+        export CLANG_TRIPLE=aarch64-linux-gnu-
         export CROSS_COMPILE=aarch64-linux-android-
         export CROSS_COMPILE_ARM32=arm-linux-androideabi-
 
-        export CC=aarch64-linux-android33-clang
-        export LLVM=1
-
         mkdir -p out
 
-        make O=out whyred_defconfig
+        # Jalankan defconfig
+        make \
+          O=out \
+          ARCH=$ARCH \
+          SUBARCH=$SUBARCH \
+          CROSS_COMPILE=$CROSS_COMPILE \
+          CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
+          CLANG_TRIPLE=$CLANG_TRIPLE \
+          LLVM=1 \
+          whyred_defconfig
 
+        # Kompilasi kernel
         make -j$(nproc) \
           O=out \
           ARCH=$ARCH \
           SUBARCH=$SUBARCH \
-          CC=$CC \
           CROSS_COMPILE=$CROSS_COMPILE \
           CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
           CLANG_TRIPLE=$CLANG_TRIPLE \
-          LLVM=$LLVM
+          LLVM=1
 
     - name: Upload Kernel Image
       uses: actions/upload-artifact@v4
