@@ -65,5 +65,6 @@ static inline void sde_evtlog_log(void *evtlog, const char *func_name, ...)
 #define SDE_EVT32_IRQ(...)       SDE_EVT32(__VA_ARGS__)
 #define SDE_EVT32_VERBOSE(...)  SDE_EVT32(__VA_ARGS__)
 #define SDE_DBG_EVTLOG(...)     SDE_EVT32(__VA_ARGS__)
+#define SDE_DBG_CTRL(...)        sde_dbg_ctrl(__VA_ARGS__)
 
 #endif /* SDE_DBG_H_ */
